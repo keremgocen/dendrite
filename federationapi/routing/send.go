@@ -109,7 +109,6 @@ func Send(
 		haveEvents: make(map[string]*gomatrixserverlib.HeaderedEvent),
 		newEvents:  make(map[string]bool),
 		keyAPI:     keyAPI,
-		roomsMu:    mu,
 	}
 
 	var txnEvents struct {
@@ -166,7 +165,6 @@ type txnReq struct {
 	federation   txnFederationClient
 	servers      []gomatrixserverlib.ServerName
 	serversMutex sync.RWMutex
-	roomsMu      *internal.MutexByRoom
 	// local cache of events for auth checks, etc - this may include events
 	// which the roomserver is unaware of.
 	haveEvents map[string]*gomatrixserverlib.HeaderedEvent
@@ -716,9 +714,7 @@ func (t *txnReq) processEventWithMissingState(
 			respStates[i] = states[i].RespState
 		}
 		// There's more than one previous state - run them all through state res
-		t.roomsMu.Lock(e.RoomID())
 		resolvedState, err = t.resolveStatesAndCheck(gmectx, roomVersion, respStates, backwardsExtremity)
-		t.roomsMu.Unlock(e.RoomID())
 		if err != nil {
 			util.GetLogger(ctx).WithError(err).Errorf("Failed to resolve state conflicts for event %s", backwardsExtremity.EventID())
 			return err
